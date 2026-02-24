@@ -1,2 +1,0 @@
-# Seven-nodes
-Webpage design

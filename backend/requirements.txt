@@ -1,0 +1,5 @@
+fastapi
+uvicorn[standard]
+pydantic
+boto3  # needed for DynamoDB connectivity
+python-dotenv  # load environment variables from .env

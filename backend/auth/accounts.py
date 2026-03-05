@@ -15,7 +15,8 @@ from auth.schemas import AuthResponse, UserAccount, UserAccountCreate, UserAccou
 
 # default in-memory managers
 from auth.accounts_manager import AccountsManager
-from auth.sessions_manager import SessionsManager, hash_token
+from auth.sessions_manager import SessionsManager
+from auth.crypto import hash_sha256
 
 # optional DynamoDB-backed implementations (import lazily to avoid boto3 dependency when not used)
 
@@ -140,7 +141,7 @@ class AuthenticationService:
 
     def logout(self, auth_token: str) -> bool:
         """Revoke current session token."""
-        token_hash = hash_token(auth_token)
+        token_hash = hash_sha256(auth_token)
         return self.sessions.revoke_session(token_hash)
 
     def logout_all(self, auth_token: str) -> bool:

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 from dotenv import load_dotenv
 
 # Load from /auth/.env specifically — don't pull from global environment
@@ -35,7 +35,10 @@ class AccountsManager:
         accounts_table: str = DEFAULT_ACCOUNTS_TABLE,
         email_index_name: str = DEFAULT_EMAIL_INDEX,
     ) -> None:
-        self.dynamodb = boto3.resource("dynamodb")
+        # Region can come from AWS_REGION or AWS_DEFAULT_REGION; we don't
+        # hardcode a fallback here so configuration stays in the environment.
+        region_name = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION")
+        self.dynamodb = boto3.resource("dynamodb", region_name=region_name) if region_name else boto3.resource("dynamodb")
         self.table = self.dynamodb.Table(accounts_table)
         self.email_index_name = email_index_name
 
@@ -80,11 +83,20 @@ class AccountsManager:
 
     def get_account_by_email(self, email: str) -> Optional[UserAccount]:
         """Email lookup via email-index GSI — used by login and duplicate check."""
-        response = self.table.query(
-            IndexName=self.email_index_name,
-            KeyConditionExpression=Key("email").eq(email),
-        )
-        items = response.get("Items", [])
+        try:
+            # Preferred path: query via the configured GSI for fast lookups
+            response = self.table.query(
+                IndexName=self.email_index_name,
+                KeyConditionExpression=Key("email").eq(email),
+            )
+            items = response.get("Items", [])
+        except Exception:
+            # Fallback: if the index is missing/misconfigured, fall back to a table
+            # scan filtered by email so the app still behaves correctly.
+            response = self.table.scan(
+                FilterExpression=Attr("email").eq(email),
+            )
+            items = response.get("Items", [])
         return _item_to_account(items[0]) if items else None
 
     def verify_credentials(self, email: str, password: str) -> Optional[UserAccount]:

@@ -6,11 +6,18 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from auth.accounts import AuthenticationService
+# Load environment from a few common locations so local development
+# works regardless of where .env is placed. This must run BEFORE we import
+# anything that talks to DynamoDB via boto3 so AWS_REGION and credentials
+# are visible.
+base_dir = Path(__file__).parent.parent
+load_dotenv(base_dir / ".env")
+load_dotenv(Path(__file__).parent / ".env")
+load_dotenv(Path(__file__).parent / "auth" / ".env")
 
-# Load environment variables from .env file (if it exists)
-load_dotenv(Path(__file__).parent.parent / ".env")
+from auth.accounts import AuthenticationService
 from auth.schemas import AuthResponse, UserAccountCreate, OrganisationType, AccountTier
+
 
 app = FastAPI()
 auth_service = AuthenticationService()
@@ -97,3 +104,4 @@ def logout(request: Request) -> dict[str, bool]:
     token = authorization[7:].strip()
     ok = auth_service.logout(token)
     return {"success": ok}
+

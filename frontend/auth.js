@@ -28,6 +28,45 @@ function setUser(user) {
   }
 }
 
+function validateEmail(value) {
+  return /\S+@\S+\.\S+/.test(value);
+}
+
+function validateLoginForm(form) {
+  const errors = [];
+  if (!form.email.value.trim()) {
+    errors.push("Email is required.");
+  } else if (!validateEmail(form.email.value.trim())) {
+    errors.push("Email is not valid.");
+  }
+  if (!form.password.value) {
+    errors.push("Password is required.");
+  }
+  return errors;
+}
+
+function validateSignupForm(form) {
+  const errors = [];
+  if (!form.first_name.value.trim()) {
+    errors.push("First name is required.");
+  }
+  if (!form.last_name.value.trim()) {
+    errors.push("Last name is required.");
+  }
+  if (!form.email.value.trim()) {
+    errors.push("Email is required.");
+  } else if (!validateEmail(form.email.value.trim())) {
+    errors.push("Email is not valid.");
+  }
+  if (!form.password.value || form.password.value.length < 6) {
+    errors.push("Password must be at least 6 characters long.");
+  }
+  if (!form.organisation_type.value) {
+    errors.push("Organisation type is required.");
+  }
+  return errors;
+}
+
 function updateUI() {
   const token = getAuthToken();
   const user = getUser();
@@ -75,9 +114,16 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
   const form = e.target;
   const errEl = document.getElementById("login-error");
   errEl.textContent = "";
+
+  const errors = validateLoginForm(form);
+  if (errors.length) {
+    errEl.textContent = errors.join(" ");
+    return;
+  }
+
   try {
     const data = await apiPost("/api/login", {
-      email: form.email.value,
+      email: form.email.value.trim(),
       password: form.password.value,
       remember_me: form.remember_me.checked,
     });
@@ -95,11 +141,18 @@ document.getElementById("signup-form").addEventListener("submit", async (e) => {
   const form = e.target;
   const errEl = document.getElementById("signup-error");
   errEl.textContent = "";
+
+  const errors = validateSignupForm(form);
+  if (errors.length) {
+    errEl.textContent = errors.join(" ");
+    return;
+  }
+
   try {
     const data = await apiPost("/api/register", {
-      first_name: form.first_name.value,
-      last_name: form.last_name.value,
-      email: form.email.value,
+      first_name: form.first_name.value.trim(),
+      last_name: form.last_name.value.trim(),
+      email: form.email.value.trim(),
       password: form.password.value,
       organisation_type: form.organisation_type.value,
       remember_me: form.remember_me.checked,

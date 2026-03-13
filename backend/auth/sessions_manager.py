@@ -37,7 +37,10 @@ class SessionsManager:
         token_index_name: str = DEFAULT_TOKEN_INDEX,
         user_index_name: str = DEFAULT_USER_INDEX,
     ) -> None:
-        self.dynamodb = boto3.resource("dynamodb")
+        # Region can come from AWS_REGION or AWS_DEFAULT_REGION; we don't
+        # hardcode a fallback here so configuration stays in the environment.
+        region_name = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION")
+        self.dynamodb = boto3.resource("dynamodb", region_name=region_name) if region_name else boto3.resource("dynamodb")
         self.table = self.dynamodb.Table(sessions_table)
         self.user_index_name = user_index_name
 
